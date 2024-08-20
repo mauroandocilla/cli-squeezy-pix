@@ -1,0 +1,59 @@
+# github.com/workflow/npm.yml
+name: publish-to-npm
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          GOOS=darwin GOARCH=amd64 go build -o dist/spix-macos
+          GOOS=linux GOARCH=amd64 go build -o dist/spix-linux
+          GOOS=windows GOARCH=amd64 go build -o dist/spix.exe
+
+      - name: List dist directory
+        run: ls -la dist
+
+      - name: Copy binaries to npm-package/dist
+        run: |
+          mkdir -p npm-package/dist
+          cp dist/spix-macos npm-package/dist/spix-macos
+          cp dist/spix-linux npm-package/dist/spix-linux
+          cp dist/spix.exe npm-package/dist/spix.exe
+
+      - name: Update package.json version
+        working-directory: ./npm-package
+        run: |
+          VERSION=$(echo $GITHUB_REF | sed 's/refs\/tags\/v//')
+          npm version $VERSION --no-git-tag-version
+
+      - name: Prepare npm package
+        working-directory: ./npm-package
+        run: npm install
+
+      - name: Publish to npm
+        working-directory: ./npm-package
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
