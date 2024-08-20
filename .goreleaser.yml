@@ -1,0 +1,34 @@
+# Configurations of GoReleaser to compile and publish in GitHub and Homebrew
+version: 2
+
+builds:
+  - binary: spix
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
+
+# Homebrew Tap publication without the 'tap' property
+brews:
+  - name: spix
+    homepage: https://github.com/mauroandocilla/cli-squeezy-pix
+    directory: Formula
+    repository:
+      owner: mauroandocilla
+      name: homebrew-mauroandocilla
+    commit_author:
+      name: mauroandocilla
+      email: m.andocilla@me.com
+    test: |
+      system "#{bin}/spix", "--version"
+    install: |
+      bin.install "spix"
+
+checksum:
+  name_template: 'checksums.txt'

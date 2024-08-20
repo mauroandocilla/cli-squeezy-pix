@@ -1,0 +1,18 @@
+{
+  "name": "cli-squeezy-pix",
+  "version": "1.0.0",
+  "description": "CLI for image optimization",
+  "bin": {
+    "spix": "spix"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "author": "Mauro Andocilla",
+  "license": "MIT"
+}
