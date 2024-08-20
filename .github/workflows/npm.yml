@@ -1,0 +1,62 @@
+name: publish-to-npm
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          GOOS=darwin GOARCH=amd64 go build -o dist/spix-macos
+          GOOS=linux GOARCH=amd64 go build -o dist/spix-linux
+          GOOS=windows GOARCH=amd64 go build -o dist/spix.exe
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/spix-macos
+            dist/spix-linux
+            dist/spix.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLISHER_TOKEN }}
+
+      - name: Inject GitHub Release URL into install.js
+        run: |
+          echo "RELEASE_URL=https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}" > ./npm-package/release-url.env
+
+      - name: Update package.json version
+        working-directory: ./npm-package
+        run: |
+          VERSION=$(echo $GITHUB_REF | sed 's/refs\/tags\/v//')
+          npm version $VERSION --no-git-tag-version
+
+      - name: Prepare npm package
+        working-directory: ./npm-package
+        run: npm install
+
+      - name: Publish to npm
+        working-directory: ./npm-package
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
